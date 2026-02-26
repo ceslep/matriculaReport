@@ -24,6 +24,11 @@ npm run preview      # Preview production build locally
 npm run check        # Run svelte-check + TypeScript validation
 ```
 
+### Deploy
+```bash
+npm run deploy       # Build and deploy to GitHub Pages
+```
+
 ### Running a Single Test
 There are currently no test files in this project. If tests are added:
 - Use Vitest as the testing framework
@@ -49,13 +54,15 @@ There are currently no test files in this project. If tests are added:
 - Use relative imports for local modules: `./components/Component.svelte`
 - Use package imports for dependencies: `import { something } from 'svelte'`
 - Use `$lib` alias for library code if configured (not currently set up)
+- Import types explicitly: `import type { Estudiante, ApiError } from './lib/types/student'`
+- Svelte mount pattern uses `mount()` from 'svelte'
 
 ### Naming Conventions
-- **Files**: kebab-case for Svelte components (`MyComponent.svelte`), PascalCase for TypeScript modules
+- **Files**: PascalCase for Svelte components (`SearchBar.svelte`, `ResultsTable.svelte`), camelCase for TypeScript modules (`client.ts`, `student.ts`)
 - **Variables/functions**: camelCase
 - **Classes/interfaces**: PascalCase
 - **Constants**: UPPER_SNAKE_CASE for compile-time constants, camelCase otherwise
-- **Components**: PascalCase (e.g., `EnrollmentForm.svelte`)
+- **Directories**: kebab-case (`lib/components`, `lib/api`, `lib/types`)
 
 ### Svelte 5 Patterns
 ```svelte
@@ -91,6 +98,26 @@ There are currently no test files in this project. If tests are added:
 - Never use `any` type - use `unknown` and type narrowing
 - Handle errors with proper TypeScript types
 - Use Svelte's error boundary component pattern when appropriate
+- Always narrow caught errors with type assertions: `const err = e as ApiError`
+
+### API Client Pattern
+The project uses a singleton API client pattern:
+```typescript
+// src/lib/api/client.ts
+export class ApiClient {
+  private baseUrl: string;
+  constructor(baseUrl: string = API_BASE_URL) {
+    this.baseUrl = baseUrl.replace(/\/$/, '');
+  }
+  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    // ... implementation
+  }
+}
+export const apiClient = new ApiClient();
+```
+- Use class-based API clients for organized API calls
+- Export a singleton instance for global use
+- Use `import.meta.env.VITE_*` for environment variables (prefix with VITE_)
 
 ### CSS & Styling
 - Use TailwindCSS utility classes in component templates
@@ -104,7 +131,9 @@ src/
 ├── App.svelte           # Root component
 ├── app.css              # Global styles
 ├── lib/                 # Shared components/utilities
-│   └── components/
+│   ├── api/             # API client
+│   ├── components/      # Svelte components
+│   └── types/           # TypeScript types
 ├── routes/              # Page components (if using SvelteKit)
 └── assets/              # Static assets
 ```
@@ -150,6 +179,7 @@ Set the API URL in `.env`:
 ```
 VITE_API_URL=https://tu-dominio.com
 ```
+Note: Environment variables must be prefixed with `VITE_` to be exposed to the client-side code.
 
 ## Python Backend (legacy - public/pyni/)
 

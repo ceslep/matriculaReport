@@ -2,9 +2,18 @@
   import type { Estudiante } from '../types/student';
   import { apiClient } from '../api/client';
 
-  let { estudiantes = [], onPdfClick }: { 
+  let { 
+    estudiantes = [], 
+    onPdfClick,
+    seleccionados = [],
+    onSeleccionar,
+    onSeleccionarTodos
+  }: { 
     estudiantes: Estudiante[]; 
     onPdfClick?: (codigo: string) => void;
+    seleccionados?: string[];
+    onSeleccionar?: (codigo: string) => void;
+    onSeleccionarTodos?: (seleccionar: boolean) => void;
   } = $props();
 
   function getGrupo(estudiante: Estudiante): string {
@@ -18,12 +27,37 @@
       apiClient.descargarPdf(codigo);
     }
   }
+
+  function handleSeleccionar(codigo: string) {
+    if (onSeleccionar) {
+      onSeleccionar(codigo);
+    }
+  }
+
+  function handleSeleccionarTodos() {
+    if (onSeleccionarTodos) {
+      const allSelected = estudiantes.every(e => seleccionados.includes(e.codigo));
+      onSeleccionarTodos(!allSelected);
+    }
+  }
+
+  const todosSeleccionados = $derived(
+    estudiantes.length > 0 && estudiantes.every(e => seleccionados.includes(e.codigo))
+  );
 </script>
 
 <div class="overflow-x-auto">
   <table class="w-full border-collapse">
     <thead>
       <tr class="bg-gray-800 text-white">
+        <th class="px-4 py-3 text-center w-12">
+          <input 
+            type="checkbox" 
+            checked={todosSeleccionados}
+            onchange={handleSeleccionarTodos}
+            class="w-4 h-4 cursor-pointer"
+          />
+        </th>
         <th class="px-4 py-3 text-center">N°</th>
         <th class="px-4 py-3 text-center">Código</th>
         <th class="px-4 py-3">Estudiante</th>
@@ -36,13 +70,21 @@
     <tbody>
       {#if estudiantes.length === 0}
         <tr>
-          <td colspan="7" class="px-4 py-8 text-center text-gray-500">
+          <td colspan="8" class="px-4 py-8 text-center text-gray-500">
             Realiza una búsqueda
           </td>
         </tr>
       {:else}
         {#each estudiantes as estudiante, index}
-          <tr class="border-b hover:bg-gray-50">
+          <tr class="border-b hover:bg-gray-50" class:bg-blue-50={seleccionados.includes(estudiante.codigo)}>
+            <td class="px-4 py-3 text-center">
+              <input 
+                type="checkbox" 
+                checked={seleccionados.includes(estudiante.codigo)}
+                onchange={() => handleSeleccionar(estudiante.codigo)}
+                class="w-4 h-4 cursor-pointer"
+              />
+            </td>
             <td class="px-4 py-3 text-center">{index + 1}</td>
             <td class="px-4 py-3 text-center">{estudiante.codigo}</td>
             <td class="px-4 py-3">{estudiante.estudiante}</td>

@@ -10,6 +10,7 @@
   let loading = $state(false);
   let error = $state('');
   let searchPerformed = $state(false);
+  let seleccionados = $state<string[]>([]);
   
   // Estado del modal
   let showModal = $state(false);
@@ -54,6 +55,27 @@
     showModal = false;
     pdfUrl = '';
   }
+
+  function handleSeleccionar(codigo: string) {
+    if (seleccionados.includes(codigo)) {
+      seleccionados = seleccionados.filter(c => c !== codigo);
+    } else {
+      seleccionados = [...seleccionados, codigo];
+    }
+  }
+
+  function handleSeleccionarTodos(seleccionar: boolean) {
+    if (seleccionar) {
+      seleccionados = estudiantes.map(e => e.codigo);
+    } else {
+      seleccionados = [];
+    }
+  }
+
+  async function generarPdfConsolidado() {
+    if (seleccionados.length === 0) return;
+    await apiClient.generarPdfConsolidado(seleccionados);
+  }
 </script>
 
 <main class="min-h-screen bg-gray-100 py-8">
@@ -79,8 +101,31 @@
     {/if}
 
     <div class="bg-white rounded-lg shadow-lg overflow-hidden">
-      <ResultsTable {estudiantes} onPdfClick={handlePdfClick} />
+      <ResultsTable 
+        {estudiantes} 
+        onPdfClick={handlePdfClick}
+        {seleccionados}
+        onSeleccionar={handleSeleccionar}
+        onSeleccionarTodos={handleSeleccionarTodos}
+      />
     </div>
+
+    {#if seleccionados.length > 0}
+      <div class="fixed bottom-6 right-6 flex items-center gap-4 bg-white shadow-lg rounded-lg p-4 border border-gray-200">
+        <span class="text-sm font-medium text-gray-700">
+          {seleccionados.length} estudiante{seleccionados.length !== 1 ? 's' : ''} seleccionado{seleccionados.length !== 1 ? 's' : ''}
+        </span>
+        <button
+          onclick={generarPdfConsolidado}
+          class="inline-flex items-center px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+          </svg>
+          PDF Consolidado
+        </button>
+      </div>
+    {/if}
   </div>
 </main>
 

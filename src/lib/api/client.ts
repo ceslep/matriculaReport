@@ -41,6 +41,16 @@ export class ApiClient {
     const url = this.getPdfUrl(codigo);
     window.open(url, '_blank');
   }
+
+  async generarPdfConsolidado(codigos: string[]): Promise<void> {
+    if (codigos.length === 0) return;
+    
+    const params = new URLSearchParams();
+    codigos.forEach(codigo => params.append('codigos[]', codigo));
+    
+    const url = `${this.baseUrl}/api/pdf_consolidado.php?${params}`;
+    window.open(url, '_blank');
+  }
 }
 
 export const apiClient = new ApiClient();
