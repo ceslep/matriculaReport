@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import SearchBar from './lib/components/SearchBar.svelte';
   import ResultsTable from './lib/components/ResultsTable.svelte';
   import ModalPDF from './lib/components/ModalPDF.svelte';
@@ -14,7 +15,19 @@
   let showModal = $state(false);
   let pdfUrl = $state('');
 
+  // Parámetros de URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const codigoInicial = urlParams.get('codigo');
+  const isEmbedded = urlParams.get('embedded') === 'true';
+
   const currentYear = new Date().getFullYear();
+
+  // Buscar automáticamente si hay un código en la URL
+  onMount(() => {
+    if (codigoInicial) {
+      handleSearch(codigoInicial);
+    }
+  });
 
   async function handleSearch(criterio: string) {
     loading = true;
@@ -45,9 +58,15 @@
 
 <main class="min-h-screen bg-gray-100 py-8">
   <div class="container mx-auto px-4">
-    <h1 class="text-3xl font-bold text-center mb-8 text-gray-800">
-      Imprimir Información del Estudiante {currentYear}
-    </h1>
+    {#if !isEmbedded}
+      <h1 class="text-3xl font-bold text-center mb-8 text-gray-800">
+        Imprimir Información del Estudiante {currentYear}
+      </h1>
+    {:else}
+      <h1 class="text-xl font-bold text-center mb-4 text-gray-800">
+        Buscar Estudiante - {currentYear}
+      </h1>
+    {/if}
 
     <div class="max-w-3xl mx-auto mb-8">
       <SearchBar onSearch={handleSearch} {loading} />
