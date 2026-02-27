@@ -4,7 +4,7 @@ This document provides guidelines for agents working on this codebase.
 
 ## Project Overview
 
-This is a **Svelte 5 + TypeScript + Vite + TailwindCSS** web application. The project is a student enrollment/registration report system.
+This is a **Svelte 5 + TypeScript + Vite + TailwindCSS v4** web application. The project is a student enrollment/registration report system.
 
 ## Build, Lint, and Test Commands
 
@@ -29,9 +29,9 @@ npm run check        # Run svelte-check + TypeScript validation
 npm run deploy       # Build and deploy to GitHub Pages
 ```
 
-### Running a Single Test
-There are currently no test files in this project. If tests are added:
-- Use Vitest as the testing framework
+### Running Tests
+This project currently has no test files. When tests are added:
+- Install Vitest: `npm install -D vitest`
 - Run a single test file: `npx vitest run src/path/to/test.spec.ts`
 - Run tests matching a pattern: `npx vitest run -t "test name"`
 
@@ -40,7 +40,7 @@ There are currently no test files in this project. If tests are added:
 ### Language & Framework
 - **Svelte 5** (using runes: `$state`, `$derived`, `$effect`, `$props`)
 - **TypeScript** with strict mode enabled
-- **TailwindCSS v4** for styling
+- **TailwindCSS v4** for styling (CSS-first configuration)
 - **Vite** for bundling
 
 ### TypeScript Configuration
@@ -51,14 +51,13 @@ There are currently no test files in this project. If tests are added:
 - `noUnusedParameters: true` - error on unused parameters
 
 ### Imports & Path Resolution
-- Use relative imports for local modules: `./components/Component.svelte`
-- Use package imports for dependencies: `import { something } from 'svelte'`
-- Use `$lib` alias for library code if configured (not currently set up)
-- Import types explicitly: `import type { Estudiante, ApiError } from './lib/types/student'`
+- Use relative imports for local modules: `import Component from './components/Component.svelte'`
+- Use package imports for dependencies: `import { mount } from 'svelte'`
+- Import types explicitly: `import type { Estudiante, ApiError } from '../types/student'`
 - Svelte mount pattern uses `mount()` from 'svelte'
 
 ### Naming Conventions
-- **Files**: PascalCase for Svelte components (`SearchBar.svelte`, `ResultsTable.svelte`), camelCase for TypeScript modules (`client.ts`, `student.ts`)
+- **Files**: PascalCase for Svelte components, camelCase for TypeScript modules
 - **Variables/functions**: camelCase
 - **Classes/interfaces**: PascalCase
 - **Constants**: UPPER_SNAKE_CASE for compile-time constants, camelCase otherwise
@@ -67,62 +66,63 @@ There are currently no test files in this project. If tests are added:
 ### Svelte 5 Patterns
 ```svelte
 <script lang="ts">
-  // Use runes for reactive state
-  let count = $state(0);
-  
-  // Derived state
-  let doubled = $derived(count * 2);
-  
-  // Effects
+  // Props with defaults using $props
+  let { onSearch, loading = false }: { 
+    onSearch: (criterio: string) => void; 
+    loading?: boolean;
+  } = $props();
+
+  // Reactive state with $state
+  let searchValue = $state('');
+
+  // Derived state with $derived
+  let isValid = $derived(searchValue.trim().length > 0);
+
+  // Effects with $effect
   $effect(() => {
-    console.log('Count changed:', count);
+    console.log('Search value changed:', searchValue);
   });
-  
-  // Props with defaults
-  let { title = 'Default', onSubmit } = $props<{
-    title?: string;
-    onSubmit: () => void;
-  }>();
 </script>
 
-<template>
-  <!-- Use {#snippet} for named slots -->
-  {#snippet button()}
-    <button>Click</button>
-  {/snippet}
-</template>
+<!-- Use {#snippet} for named slots -->
+{#snippet button()}
+  <button>Click</button>
+{/snippet}
 ```
 
 ### Error Handling
 - Use try/catch for async operations
 - Never use `any` type - use `unknown` and type narrowing
-- Handle errors with proper TypeScript types
-- Use Svelte's error boundary component pattern when appropriate
 - Always narrow caught errors with type assertions: `const err = e as ApiError`
+- Use Svelte's error boundary component pattern when appropriate
 
 ### API Client Pattern
 The project uses a singleton API client pattern:
 ```typescript
-// src/lib/api/client.ts
 export class ApiClient {
   private baseUrl: string;
   constructor(baseUrl: string = API_BASE_URL) {
     this.baseUrl = baseUrl.replace(/\/$/, '');
   }
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    // ... implementation
+    const response = await fetch(`${this.baseUrl}${endpoint}`, options);
+    if (!response.ok) {
+      const error: unknown = await response.json().catch(() => ({}));
+      throw error;
+    }
+    return response.json();
   }
 }
 export const apiClient = new ApiClient();
 ```
 - Use class-based API clients for organized API calls
 - Export a singleton instance for global use
-- Use `import.meta.env.VITE_*` for environment variables (prefix with VITE_)
+- Use `import.meta.env.VITE_*` for environment variables
 
 ### CSS & Styling
-- Use TailwindCSS utility classes in component templates
-- Custom styles go in `app.css` or use `<style>` blocks sparingly
+- Use TailwindCSS utility classes directly in templates
 - TailwindCSS v4 uses CSS-first configuration (no tailwind.config.js)
+- Custom styles in `app.css` or component `<style>` blocks sparingly
 
 ### File Organization
 ```
@@ -130,23 +130,20 @@ src/
 ├── main.ts              # Entry point
 ├── App.svelte           # Root component
 ├── app.css              # Global styles
-├── lib/                 # Shared components/utilities
+├── lib/                 # Shared code
 │   ├── api/             # API client
 │   ├── components/      # Svelte components
 │   └── types/           # TypeScript types
-├── routes/              # Page components (if using SvelteKit)
-└── assets/              # Static assets
 ```
 
 ### TypeScript Best Practices
 - Always define return types for functions when possible
 - Use interfaces for object shapes, types for unions/aliases
-- Enable strict null checks (`strictNullChecks` is on via strict mode)
 - Avoid `!` non-null assertion unless absolutely certain
 
-### Git & Commits
-- This repo is not initialized with git
-- If git is added, use conventional commit messages
+### Environment Variables
+- Prefix with `VITE_` to expose to client-side code
+- Example: `VITE_API_URL=https://tu-dominio.com`
 
 ### Pre-commit & Build Verification
 Before submitting any code changes, run:
@@ -160,30 +157,14 @@ npm run build           # Must build successfully
 Recommended VS Code extensions:
 - `svelte.svelte-vscode` - Svelte language support
 
-## PHP Backend API (public/pyni/api/)
+## Backend APIs
 
-The project includes a PHP API for the MySQL database (for deployment on PHP hosting):
-
-### Files
+### PHP API (public/pyni/api/)
 - `api/config.php` - MySQL connection with PDO
 - `api/buscar.php` - Search students endpoint (GET `/api/buscar.php?criterio=...`)
 - `api/pdf.php` - Generate PDF endpoint (GET `/api/pdf.php?codigo=...`)
+- Setup: `composer require tecnickcom/tcpdf`
 
-### Setup
-1. Install TCPDF: `composer require tecnickcom/tcpdf`
-2. Configure database credentials in `api/config.php`
-3. Copy images folder to hosting: `public/pyni/images/`
-
-### Configuration
-Set the API URL in `.env`:
-```
-VITE_API_URL=https://tu-dominio.com
-```
-Note: Environment variables must be prefixed with `VITE_` to be exposed to the client-side code.
-
-## Python Backend (legacy - public/pyni/)
-
-The original Python Flask backend is still available in `public/pyni/`:
+### Python Backend (legacy - public/pyni/)
 - `server.py` - Flask application
-- `requirements.txt` - Python dependencies
-- Run with: `cd public/pyni && pip install -r requirements.txt && python server.py`
+- Run: `cd public/pyni && pip install -r requirements.txt && python server.py`

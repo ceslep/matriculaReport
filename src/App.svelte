@@ -11,6 +11,7 @@
   let error = $state('');
   let searchPerformed = $state(false);
   let seleccionados = $state<string[]>([]);
+  let codigoInicialProcesado = $state(false);
   
   // Estado del modal
   let showModal = $state(false);
@@ -27,6 +28,14 @@
   onMount(() => {
     if (codigoInicial) {
       handleSearch(codigoInicial);
+    }
+  });
+
+  // Abrir PDF automáticamente cuando hay un resultado de búsqueda por URL
+  $effect(() => {
+    if (codigoInicial && !codigoInicialProcesado && estudiantes.length === 1 && !loading && searchPerformed) {
+      codigoInicialProcesado = true;
+      handlePdfClick(estudiantes[0].codigo);
     }
   });
 
